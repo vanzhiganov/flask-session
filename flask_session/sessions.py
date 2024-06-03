@@ -9,6 +9,7 @@
     :license: BSD, see LICENSE for more details.
 """
 import time
+import re
 from datetime import datetime
 from uuid import uuid4
 try:
@@ -94,6 +95,19 @@ class RedisSessionInterface(SessionInterface):
     serializer = pickle
     session_class = RedisSession
 
+    # issue #1047
+    request = None
+    # todo: move to config
+    ignore_update_path = [
+        "\/api\/v2\/overview\/",
+        "\/api\/v2\/\d{1,3}\/stat\/",
+        "\/api\/v2\/overview\/\d{1,3}\/",
+        "\/api\/v2\/stat\/nodes\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+        "\/api\/v2\/nodes\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/net\/ifs\/",
+        "\/api\/v2\/nodes\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/disks\/",
+        "\/api\/v2\/\d{1,3}\/s3\/statistics\/",
+    ]
+
     def __init__(self, redis, key_prefix, use_signer=False, permanent=True):
         if redis is None:
             from redis import Redis
@@ -118,6 +132,8 @@ class RedisSessionInterface(SessionInterface):
                 sid = self._generate_sid()
                 return self.session_class(sid=sid, permanent=self.permanent)
 
+        # issue #1047
+        self.request = request
         val = self.redis.get(self.key_prefix + sid)
         if val is not None:
             try:
@@ -136,6 +152,11 @@ class RedisSessionInterface(SessionInterface):
                 response.delete_cookie(app.session_cookie_name,
                                        domain=domain, path=path)
             return
+
+        # issue#1047
+        for pattern in self.ignore_update_path:
+            if re.match(pattern, self.request.path):
+                return
 
         # Modification case.  There are upsides and downsides to
         # emitting a set-cookie header each request.  The behavior

@@ -27,3 +27,9 @@ Version 0.2.2
 `````````````
 
 Added support for non-permanent session.
+
+
+Version 0.2.2.RP1
+`````````````````
+
+Special release with experimental config for ignoring update session ttl on specified paths
