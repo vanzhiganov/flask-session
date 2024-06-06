@@ -154,9 +154,13 @@ class RedisSessionInterface(SessionInterface):
             return
 
         # issue#1047
-        for pattern in self.ignore_update_path:
-            if re.match(pattern, self.request.path):
-                return
+        try:
+            for pattern in self.ignore_update_path:
+                if re.match(pattern, self.request.path):
+                    return
+        except:
+            # todo: add log message with severity error
+            pass
 
         # Modification case.  There are upsides and downsides to
         # emitting a set-cookie header each request.  The behavior
