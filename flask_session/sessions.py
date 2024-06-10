@@ -119,6 +119,8 @@ class RedisSessionInterface(SessionInterface):
 
     def open_session(self, app, request):
         sid = request.cookies.get(app.session_cookie_name)
+        # issue #1047
+        self.request = request
         if not sid:
             sid = self._generate_sid()
             return self.session_class(sid=sid, permanent=self.permanent)
@@ -132,8 +134,6 @@ class RedisSessionInterface(SessionInterface):
                 sid = self._generate_sid()
                 return self.session_class(sid=sid, permanent=self.permanent)
 
-        # issue #1047
-        self.request = request
         val = self.redis.get(self.key_prefix + sid)
         if val is not None:
             try:
