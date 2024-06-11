@@ -103,9 +103,13 @@ class RedisSessionInterface(SessionInterface):
         "\/api\/v2\/\d{1,3}\/stat\/",
         "\/api\/v2\/overview\/\d{1,3}\/",
         "\/api\/v2\/stat\/nodes\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+        "\/api\/v2\/nodes\/",
         "\/api\/v2\/nodes\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/net\/ifs\/",
         "\/api\/v2\/nodes\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/disks\/",
+        "\/api\/v2\/\d{1,3}\/s3\/",
         "\/api\/v2\/\d{1,3}\/s3\/statistics\/",
+        "\/api\/v2\/consul\/v1\/catalog\/services\/",
+        "\/api\/v2\/consul\/v1\/catalog\/service\/node\/",
     ]
 
     def __init__(self, redis, key_prefix, use_signer=False, permanent=True):
@@ -144,15 +148,6 @@ class RedisSessionInterface(SessionInterface):
         return self.session_class(sid=sid, permanent=self.permanent)
 
     def save_session(self, app, session, response):
-        domain = self.get_cookie_domain(app)
-        path = self.get_cookie_path(app)
-        if not session:
-            if session.modified:
-                self.redis.delete(self.key_prefix + session.sid)
-                response.delete_cookie(app.session_cookie_name,
-                                       domain=domain, path=path)
-            return
-
         # issue#1047
         try:
             for pattern in self.ignore_update_path:
@@ -161,6 +156,15 @@ class RedisSessionInterface(SessionInterface):
         except:
             # todo: add log message with severity error
             pass
+
+        domain = self.get_cookie_domain(app)
+        path = self.get_cookie_path(app)
+        if not session:
+            if session.modified:
+                self.redis.delete(self.key_prefix + session.sid)
+                response.delete_cookie(app.session_cookie_name,
+                                       domain=domain, path=path)
+            return
 
         # Modification case.  There are upsides and downsides to
         # emitting a set-cookie header each request.  The behavior
